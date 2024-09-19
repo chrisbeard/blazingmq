@@ -414,9 +414,14 @@ static void test3_Cluster()
 
     PV("Ensure constant value");
     ASSERT_EQ(mqbnet::Cluster::k_INVALID_NODE_ID, -1);
+    ASSERT_EQ(mqbnet::Cluster::k_GENERIC_NODE_ID, -2);
     ASSERT_EQ(mqbnet::Cluster::k_ALL_NODES_ID,
               bsl::numeric_limits<int>::min());
     ASSERT_NE(mqbnet::Cluster::k_INVALID_NODE_ID,
+              mqbnet::Cluster::k_GENERIC_NODE_ID);
+    ASSERT_NE(mqbnet::Cluster::k_INVALID_NODE_ID,
+              mqbnet::Cluster::k_ALL_NODES_ID);
+    ASSERT_NE(mqbnet::Cluster::k_GENERIC_NODE_ID,
               mqbnet::Cluster::k_ALL_NODES_ID);
 }
 

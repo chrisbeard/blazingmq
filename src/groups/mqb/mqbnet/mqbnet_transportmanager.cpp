@@ -679,7 +679,8 @@ void* TransportManager::getClusterNodeAndState(
          it != d_connectionsState.end();
          ++it) {
         if (it->first->d_isClusterConnection && it->first->d_node_p &&
-            it->first->d_node_p->nodeId() == nodeId &&
+            (it->first->d_node_p->nodeId() == nodeId ||
+             it->first->d_node_p->nodeId() == Cluster::k_GENERIC_NODE_ID) &&
             it->first->d_node_p->cluster()->name() == clusterName) {
             state = it->first;
             break;  // BREAK

@@ -191,6 +191,9 @@ class Cluster {
     // PUBLIC CLASS DATA
     static const int k_INVALID_NODE_ID = -1;
 
+    /// Constant integer value which represents a generic node ID.
+    static const int k_GENERIC_NODE_ID;
+
     /// Constant integer value which can be used to represent all nodes' IDs
     /// in the code.
     static const int k_ALL_NODES_ID;

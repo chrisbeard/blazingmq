@@ -63,6 +63,7 @@ ClusterNode::~ClusterNode()
 // -------------
 
 const int Cluster::k_INVALID_NODE_ID;
+const int Cluster::k_GENERIC_NODE_ID = -2;
 const int Cluster::k_ALL_NODES_ID = bsl::numeric_limits<int>::min();
 
 Cluster::~Cluster()
