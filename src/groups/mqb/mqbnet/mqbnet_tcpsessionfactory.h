@@ -481,11 +481,13 @@ class TCPSessionFactory {
     /// timestamps map.
     void logOpenSessionTime(const bsl::string& sessionDescription,
                             const bsl::shared_ptr<bmqio::Channel>& channel);
-    /// @brief Check that the TCP interfaces are valid.
+
+    /// @brief Check that the configured TCP interfaces are valid.
     ///
     /// We require the following:
     /// - The name of each listener interface is unique
     /// - The port of each listener interface is unqiue
+    /// - The port of each listener is in a the valid range
     ///
     /// @returns 0 on success, nonzero on failure.
     int validateTcpInterfaces() const;

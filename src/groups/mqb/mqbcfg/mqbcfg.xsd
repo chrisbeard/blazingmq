@@ -282,12 +282,16 @@
 
       name.................:
         A name to associate this listener to.
+      address..............:
+        The IP address or hostname to bind to. If omitted, defaults to 0.0.0.0
+        (all interfaces).
       port.................:
         The port this listener will accept connections on.
       </documentation>
     </annotation>
     <sequence>
       <element name='name'                type='string'/>
+      <element name='address'             type='string' minOccurs='0'/>
       <element name='port'                type='int'/>
     </sequence>
   </complexType>
