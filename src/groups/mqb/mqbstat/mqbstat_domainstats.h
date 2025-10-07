@@ -28,6 +28,8 @@
 // exposing methods to initialize the stat contexts.
 
 // MQB
+#include <bmqst_basictableinfoprovider.h>
+#include <bmqst_table.h>
 #include <bmqst_statcontext.h>
 
 // BDE
@@ -142,6 +144,14 @@ struct DomainStatsUtil {
     /// specified `allocator` for all stat context and stat values.
     static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContext(int historySize, bslma::Allocator* allocator);
+
+    /// Load in the specified `table` and `tip` the objects to print the
+    /// specified `statContext` for the specified `historySize`.
+    static void
+    initializeTableAndTipDomain(bmqst::Table*                  table,
+                                bmqst::BasicTableInfoProvider* tip,
+                                int                            historySize,
+                                bmqst::StatContext*            statContext);
 };
 
 // ============================================================================

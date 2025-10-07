@@ -148,7 +148,7 @@ DomainStatsUtil::initializeStatContext(int               historySize,
     config.isTable(true)
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)
-        .storeExpiredSubcontextValues(true)
+        // TODO all 3 values have to be here in order to print queue_count???
         .value("cfg_msgs")
         .value("cfg_bytes")
         .value("queue_count");
@@ -156,6 +156,36 @@ DomainStatsUtil::initializeStatContext(int               historySize,
     return bsl::shared_ptr<bmqst::StatContext>(
         new (*allocator) bmqst::StatContext(config, allocator),
         allocator);
+}
+
+void DomainStatsUtil::initializeTableAndTipDomain(
+    bmqst::Table*                  table,
+    bmqst::BasicTableInfoProvider* tip,
+    int                            historySize,
+    bmqst::StatContext*            statContext)
+{
+    // Use only one level for now ...
+    bmqst::StatValue::SnapshotLocation start(0, 0);
+    bmqst::StatValue::SnapshotLocation end(0, historySize - 1);
+
+    // Create table
+    bmqst::TableSchema& schema = table->schema();
+
+    schema.addDefaultIdColumn("id");
+    schema.addColumn("queue_count",
+                     DomainStats::Stat::e_QUEUE_COUNT,
+                     bmqst::StatUtil::value,
+                     start);
+
+    // Configure records
+    bmqst::TableRecords& records = table->records();
+    records.setContext(statContext);
+
+    // Create the tip
+    tip->setTable(table);
+    tip->setColumnGroup("");
+    tip->addColumn("id", "").justifyLeft();
+    tip->addColumn("queue_count", "# queues").zeroString("");
 }
 
 }  // close package namespace
