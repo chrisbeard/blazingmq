@@ -126,24 +126,6 @@ void AuthenticationContext::setAuthenticationResult(
     d_authenticationResultSp = value;
 }
 
-void AuthenticationContext::setAuthenticationMessage(
-    const bmqp_ctrlmsg::AuthenticationMessage& value)
-{
-    // PRECONDITION
-    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATED);
-
-    d_authenticationMessage = value;
-}
-
-void AuthenticationContext::setAuthenticationEncodingType(
-    bmqp::EncodingType::Enum value)
-{
-    // PRECONDITION
-    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATED);
-
-    d_encodingType = value;
-}
-
 void AuthenticationContext::resetAuthenticationMessage()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
@@ -267,12 +249,18 @@ void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
     scheduler_p->cancelEventAndWait(&d_timeoutHandle);
 }
 
-bool AuthenticationContext::tryStartReauthentication()
+bool AuthenticationContext::tryStartReauthentication(
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+    bmqp::EncodingType::Enum                   encodingType)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
+    // Note: the message and encoding type are read in the authenticator
+    // thread in the AUTHENTICATING state.
     if (d_state == AuthenticationState::e_AUTHENTICATED) {
-        d_state = AuthenticationState::e_AUTHENTICATING;
+        d_authenticationMessage = authenticationMessage;
+        d_encodingType          = encodingType;
+        d_state                 = AuthenticationState::e_AUTHENTICATING;
         return true;
     }
 

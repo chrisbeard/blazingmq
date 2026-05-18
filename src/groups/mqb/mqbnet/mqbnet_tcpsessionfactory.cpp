@@ -1102,16 +1102,22 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
 
     BALL_LOG_INFO << description << ": Received an authentication message";
 
-    context->setAuthenticationMessage(authenticationMessage);
-    context->setAuthenticationEncodingType(
-        event.authenticationEventEncodingType());
+    // Try to transition to the reauthentication state.  If authentication is
+    // already in progress, drop this event.
+    if (!context->tryStartReauthentication(
+            authenticationMessage,
+            event.authenticationEventEncodingType())) {
+        // This branch could happen if authentication threads are slow or
+        // backed up and the client's previous authentication message is
+        // still being processed.
+        //
+        // Otherwise, this is unexpected behavior.
+        // For example: client was anonymously authenticated during session
+        // negotiation, and then sent an authentication message.
 
-    // Try to start reauthentication.  If another reauthentication is
-    // in progress, drop this event.
-    if (!context->tryStartReauthentication()) {
         BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
                        << ": Dropping Authentication event since "
-                          "authentication is in progress: "
+                          "reauthentication cannot be started: "
                        << event;
         return;  // RETURN
     }

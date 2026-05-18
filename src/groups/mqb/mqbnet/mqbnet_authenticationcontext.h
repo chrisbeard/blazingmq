@@ -141,7 +141,9 @@ class AuthenticationContext {
     /// Handle to the reauthentication timer event, if any.
     EventHandle d_timeoutHandle;
 
-    /// Authentication State.
+    /// Authentication State.  Used to prevent multiple concurrent
+    /// authentication/reauthentication attempts from occuring on the
+    /// same channel.
     AuthenticationState::Enum d_state;
 
     /// The initial connection context associated with this authentication
@@ -190,15 +192,6 @@ class AuthenticationContext {
     void setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
 
-    // NOTE: AuthenticationMessage and encodingType are set only during
-    // reauthentication when AuthenticationState is e_AUTHENTICATED.
-    // authenticationMessage() and encodingType() are called only when
-    // AuthenticationState is e_AUTHENTICATING.  Hence, no need for mutex
-    // protection.
-    void
-    setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
-    void setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
-
     void resetAuthenticationMessage();
 
     /// Schedule a reauthentication timer using the specified `scheduler_p`
@@ -231,11 +224,14 @@ class AuthenticationContext {
     void onClose(bdlmt::EventScheduler* scheduler_p);
 
     /// Attempt to begin reauthentication by transitioning the state from
-    /// AUTHENTICATED to AUTHENTICATING.
+    /// AUTHENTICATED to AUTHENTICATING.  If the transition succeeds, store
+    /// the specified `authenticationMessage` and `encodingType` atomically
+    /// under the lock before returning.
     /// Return true if the transition occurred (i.e. state was AUTHENTICATED);
-    /// otherwise return false (already authenticating, closed, or not yet
-    /// authenticated).
-    bool tryStartReauthentication();
+    /// otherwise return false (already authenticating or closed).
+    bool tryStartReauthentication(
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+        bmqp::EncodingType::Enum                   encodingType);
 
     // ACCESSORS
     const bsl::shared_ptr<mqbplug::AuthenticationResult>&

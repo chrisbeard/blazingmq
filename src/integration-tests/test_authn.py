@@ -356,6 +356,34 @@ def test_default_anonymous_multi_node(
     client.stop()
 
 
+def test_auth_after_anonymous_auth_session(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """Sending an authentication event after anonymous negotiation must not
+    crash the broker.  The broker should drop the event and keep the
+    connection alive."""
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+
+    # Anonymous negotiation, no authn
+    nego_resp = client.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    # The broker should ignore this authentication request since
+    # the client used anonymous authn
+    client._send_authentication_request("Basic", "fake:creds")
+
+    # Open second connection, broker should still be alive
+    client2 = RawClient()
+    client2.open_channel(*single_node.admin_endpoint)
+    nego_resp2 = client2.negotiate()
+    assert nego_resp2["brokerResponse"]["result"]["code"] == 0
+    client2.stop()
+
+    client.stop()
+
+
 def test_empty_authenticators_reject_basic(
     single_node: Cluster,
     domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
