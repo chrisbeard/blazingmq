@@ -95,8 +95,8 @@ class PutMessageIterator {
 
     PutHeader d_header;
     // Deep copy of current PutHeader.
-    // Force decompression (controlled by
-    // 'd_isDecompressingOldMPs') results in
+    // Explicit decompression (controlled by
+    // 'd_decompressFlag') results in
     // de-compressed data (in
     // 'd_applicationData') and the
     // corresponding 'header()' should not
@@ -164,23 +164,6 @@ class PutMessageIterator {
     // Buffer factory used for decompressed
     // application data.
 
-    bool d_isDecompressingOldMPs;
-    // Temporary; shall remove after 2ns
-    // roll out of "new style" brokers.
-    //
-    // Recognize the following scenarios
-    // 1) De-compress everything
-    //      (d_decompressFlag == true)
-    // 2) De-compress old format only
-    //    (d_isDecompressingOldMPs == true)
-    // 3) Do not de-compress
-    //      (d_decompressFlag == false &&
-    //      isDecompressingOldMPs == false)
-    // Payload is de-compressed when
-    // (d_decompressFlag == true ||
-    //  (isDecompressingOldMPs == true &&
-    //   isOldFormat == true))
-
     bslma::Allocator* d_allocator_p;
     // Allocator to use by this object.
 
@@ -218,14 +201,9 @@ class PutMessageIterator {
 
     /// Create an invalid instance using the specified `allocator` and
     /// the specified `blobBufferFactory`.  The only valid operations on an
-    /// invalid instance are assignment, `reset` and `isValid`.  If the
-    /// optionally specified `isDecompressingOldMPs` is `true' and PUT
-    /// message has compressed MessageProperties (old style), de-compress
-    /// message.  Temporary, shall remove the 'isDecompressingMPs` argument
-    /// the after all Brokers can read new style of compression.
+    /// invalid instance are assignment, `reset` and `isValid`.
     PutMessageIterator(bdlbb::BlobBufferFactory* bufferFactory,
-                       bslma::Allocator*         allocator,
-                       bool isDecompressingOldMPs = false);
+                       bslma::Allocator*         allocator);
 
     /// Initialize a new instance using the specified `blob`, `eventHeader`,
     /// `decompressFlag`, `blobBufferFactory` and `allocator`.  Behavior is
@@ -417,8 +395,7 @@ class PutMessageIterator {
 // CREATORS
 inline PutMessageIterator::PutMessageIterator(
     bdlbb::BlobBufferFactory* bufferFactory,
-    bslma::Allocator*         allocator,
-    bool                      isDecompressingOldMPs)
+    bslma::Allocator*         allocator)
 : d_blobIter(0, bmqu::BlobPosition(), 0, true)
 , d_applicationDataSize(-1)
 , d_lazyMessagePayloadSize(-1)
@@ -432,7 +409,6 @@ inline PutMessageIterator::PutMessageIterator(
 , d_decompressFlag(false)
 , d_applicationData(bufferFactory, allocator)
 , d_bufferFactory_p(bufferFactory)
-, d_isDecompressingOldMPs(isDecompressingOldMPs)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -449,7 +425,6 @@ inline PutMessageIterator::PutMessageIterator(
 , d_decompressFlag(decompressFlag)
 , d_applicationData(bufferFactory, allocator)
 , d_bufferFactory_p(bufferFactory)
-, d_isDecompressingOldMPs(false)
 , d_allocator_p(allocator)
 {
     reset(blob, eventHeader, decompressFlag);
@@ -552,7 +527,7 @@ inline int PutMessageIterator::messagePropertiesSize() const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
-    BSLS_ASSERT_SAFE(d_decompressFlag || d_isDecompressingOldMPs);
+    BSLS_ASSERT_SAFE(d_decompressFlag);
 
     return d_messagePropertiesSize;
 }

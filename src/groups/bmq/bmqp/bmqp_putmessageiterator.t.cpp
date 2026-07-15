@@ -23,6 +23,9 @@
 #include <bmqp_puttester.h>
 #include <bmqt_messageguid.h>
 
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
+
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
@@ -1178,6 +1181,110 @@ static void test6_putEventWithZeroLengthPutMessages()
     }
 }
 
+static void test7_putEventWithOldStyleMessagePropertiesIsRejected()
+// ------------------------------------------------------------------------
+// OLD STYLE MESSAGE PROPERTIES ARE REJECTED
+//
+// Concerns:
+//   A PUT message carrying "old style" (v1) message properties (the
+//   'e_MESSAGE_PROPERTIES' flag is set but no schema id is present in the
+//   header) must be rejected by 'next()' before any decompression happens.
+//   This prevents a decompression bomb from being expanded ahead of
+//   queue-id validation and permission checks.
+//
+// Plan:
+//   1. Build a well-formed, ZLIB-compressed PUT event with message
+//      properties (new style, i.e. with a schema id).
+//   2. Downgrade its PutHeader to the old style by clearing the schema id
+//      while keeping the 'e_MESSAGE_PROPERTIES' flag set.
+//   3. Verify 'next()' returns a negative rc, both when decompression is
+//      requested and when it is not.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "OLD STYLE MESSAGE PROPERTIES ARE REJECTED");
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+
+    bdlbb::Blob                        eventBlob(&bufferFactory,
+                          bmqtst::TestHelperUtil::allocator());
+    bsl::vector<bmqp::PutTester::Data> data(
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader eventHeader;
+
+    bmqp::PutTester::populateBlob(&eventBlob,
+                                  &eventHeader,
+                                  &data,
+                                  1,
+                                  &bufferFactory,
+                                  false,  // No zero-length msgs
+                                  bmqtst::TestHelperUtil::allocator(),
+                                  bmqt::CompressionAlgorithmType::e_ZLIB);
+
+    // Locate the PutHeader (immediately after the EventHeader) and clear its
+    // schema id so the message properties become "old style".
+    bmqu::BlobPosition phPos;
+    BMQTST_ASSERT_EQ(0,
+                     bmqu::BlobUtil::findOffsetSafe(&phPos,
+                                                    eventBlob,
+                                                    bmqu::BlobPosition(),
+                                                    sizeof(bmqp::EventHeader)));
+
+    bmqu::BlobObjectProxy<bmqp::PutHeader> header(
+        &eventBlob,
+        phPos,
+        -bmqp::PutHeader::k_MIN_HEADER_SIZE,
+        true,    // read
+        false);  // no write-back
+    BMQTST_ASSERT_EQ(true, header.isSet());
+
+    const int headerSize = header->headerWords() * bmqp::Protocol::k_WORD_SIZE;
+    header.resize(headerSize);
+    BMQTST_ASSERT_EQ(true, header.isSet());
+
+    bmqp::PutHeader ph(*header);
+
+    // 'makeNoSchema' keeps the 'e_MESSAGE_PROPERTIES' flag set but sets the
+    // schema id to 'k_NO_SCHEMA' (old style).
+    bmqp::MessagePropertiesInfo::makeNoSchema().applyTo(&ph);
+    bmqu::BlobUtil::writeBytes(&eventBlob,
+                               phPos,
+                               reinterpret_cast<const char*>(&ph),
+                               headerSize);
+
+    // Old-style message properties must be rejected regardless of whether
+    // decompression was requested.
+    {
+        PVV("DECOMPRESS FLAG FALSE");
+        bmqp::PutMessageIterator iter(&eventBlob,
+                                      eventHeader,
+                                      false,
+                                      &bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+
+        const int rc = iter.next();
+        BMQTST_ASSERT_LT(rc, 0);
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+    }
+
+    {
+        PVV("DECOMPRESS FLAG TRUE");
+        bmqp::PutMessageIterator iter(&eventBlob,
+                                      eventHeader,
+                                      true,
+                                      &bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+
+        const int rc = iter.next();
+        BMQTST_ASSERT_LT(rc, 0);
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1188,6 +1295,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 7: test7_putEventWithOldStyleMessagePropertiesIsRejected(); break;
     case 6: test6_putEventWithZeroLengthPutMessages(); break;
     case 5: test5_putEventWithMultipleMessages(); break;
     case 4: test4_invalidPutEvent(); break;

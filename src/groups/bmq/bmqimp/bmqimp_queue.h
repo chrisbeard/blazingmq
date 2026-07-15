@@ -237,10 +237,6 @@ class Queue {
     // attempts to pack a message destined
     // for the queue will be rejected.
 
-    bsls::AtomicBool d_isOldStyle;
-    // Temporary; shall remove after 2nd
-    // roll out of "new style" brokers.
-
     bool d_isSuspendedWithBroker;
     // Whether the queue is suspended from
     // the perspective of the broker.
@@ -301,9 +297,6 @@ class Queue {
     /// Set the corresponding member of this object to the specified `value`
     /// and return a reference offering modifiable access to this object.
     Queue& setConfig(const bmqp_ctrlmsg::StreamParameters& value);
-
-    /// Temporary; shall remove after 2nd roll out of "new style" brokers.
-    Queue& setOldStyle(bool value);
 
     /// Create a new subcontext for this queue, out of the specified
     /// `parentStatContext`.  The behavior is undefined unless this method
@@ -367,8 +360,6 @@ class Queue {
     /// Return the corresponding member of this object.
     bool isSuspendedWithBroker() const;
 
-    /// Temporary; shall remove after 2nd roll out of "new style" brokers.
-    bool                                  isOldStyle() const;
     const bmqp_ctrlmsg::StreamParameters& config() const;
 
     bmqp::SchemaGenerator& schemaGenerator();
@@ -519,18 +510,6 @@ inline Queue& Queue::setIsSuspended(bool value)
     return *this;
 }
 
-inline Queue& Queue::setOldStyle(bool value)
-{
-    if (!value) {
-        d_isOldStyle = value;
-    }
-    else {
-        BSLS_ASSERT_OPT(d_isOldStyle);
-        // do not support changing from 'false' to 'true' (from 'new' to 'old')
-    }
-    return *this;
-}
-
 inline Queue& Queue::setIsSuspendedWithBroker(bool value)
 {
     d_isSuspendedWithBroker = value;
@@ -650,11 +629,6 @@ inline const bmqst::StatContext* Queue::statContext() const
 inline bool Queue::isSuspended() const
 {
     return d_isSuspended;
-}
-
-inline bool Queue::isOldStyle() const
-{
-    return d_isOldStyle;
 }
 
 inline bool Queue::isSuspendedWithBroker() const

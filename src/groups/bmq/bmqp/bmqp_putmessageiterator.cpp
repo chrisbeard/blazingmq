@@ -18,7 +18,6 @@
 #include <bmqscm_version.h>
 // BMQ
 #include <bmqp_compression.h>
-#include <bmqp_crc32c.h>
 #include <bmqp_messageproperties.h>
 #include <bmqp_optionsview.h>
 #include <bmqp_optionutil.h>
@@ -73,7 +72,6 @@ void PutMessageIterator::copyFrom(const PutMessageIterator& src)
     d_optionsPosition            = src.d_optionsPosition;
     d_decompressFlag             = src.d_decompressFlag;
     d_applicationData            = src.d_applicationData;
-    d_isDecompressingOldMPs      = src.d_isDecompressingOldMPs;
     d_header                     = src.d_header;
 
     d_optionsView.reset();
@@ -273,7 +271,7 @@ int PutMessageIterator::loadMessageProperties(bdlbb::Blob* blob) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
-    BSLS_ASSERT_SAFE(d_decompressFlag || d_isDecompressingOldMPs);
+    BSLS_ASSERT_SAFE(d_decompressFlag);
 
     enum RcEnum { rc_SUCCESS = 0, rc_INVALID_MSG_PROPS_OFFSET = -1 };
 
@@ -304,7 +302,7 @@ int PutMessageIterator::loadMessageProperties(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
-    BSLS_ASSERT_SAFE(d_decompressFlag || d_isDecompressingOldMPs);
+    BSLS_ASSERT_SAFE(d_decompressFlag);
 
     enum RcEnum {
         rc_SUCCESS          = 0,
@@ -486,7 +484,10 @@ int PutMessageIterator::next()
         rc_INVALID_OPTIONS_OFFSET           = -6,
         rc_INVALID_ADVANCE_LENGTH           = -7,
         rc_INVALID_APPLICATION_DATA_SIZE    = -8,
-        rc_INVALID_MESSAGE_PROPERTIES_FLAGS = -9
+        rc_INVALID_MESSAGE_PROPERTIES_FLAGS = -9,
+        /// PUT carries old-style (v1) message properties, which are no longer
+        /// supported.
+        rc_UNSUPPORTED_OLD_MESSAGE_PROPERTIES = -10
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
@@ -611,6 +612,18 @@ int PutMessageIterator::next()
         return rc_INVALID_MESSAGE_PROPERTIES_FLAGS;  // RETURN
     }
 
+    // Validation: reject old-style (v1) message properties, i.e. the
+    // e_MESSAGE_PROPERTIES flag is set but no schema id is present in the
+    // header.  These are no longer supported.  Rejecting here, before any size
+    // computation or decompression, prevents an attacker from driving
+    // unbounded zlib decompression (a decompression bomb) ahead of queue-id
+    // validation and permission checks.
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(haveMPs && !haveNewMPs)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_advanceLength = -1;
+        return rc_UNSUPPORTED_OLD_MESSAGE_PROPERTIES;  // RETURN
+    }
+
     const int length = compressedApplicationDataSize();
 
     // Validation: 'length' is an unpadded application data size, with
@@ -623,16 +636,7 @@ int PutMessageIterator::next()
         return rc_INVALID_APPLICATION_DATA_SIZE;  // RETURN
     }
 
-    bool decompressFlag = d_decompressFlag;
-    // 'd_decompressFlag' can be set explicitly to force decompression
-
-    if (haveMPs && !haveNewMPs && d_isDecompressingOldMPs) {
-        // Force decompression.  Note that MPs are encoded in the old style
-        // (with lengths, not offsets).  That style does not work with schema.
-        // So, leave the schema absence. The only effect is de-compressing.
-        decompressFlag = true;
-    }
-
+    // 'd_decompressFlag' can be set explicitly to force decompression.
     const bmqt::CompressionAlgorithmType::Enum cat =
         d_header.compressionAlgorithmType();
     rc = ProtocolUtil::parse(0,  // do not separate MPs from data
@@ -640,7 +644,7 @@ int PutMessageIterator::next()
                              &d_applicationData,
                              *d_blobIter.blob(),
                              length,
-                             decompressFlag,
+                             d_decompressFlag,
                              d_applicationDataPosition,
                              haveMPs,
                              haveNewMPs,
@@ -655,18 +659,6 @@ int PutMessageIterator::next()
     }
     else if (rc == 0) {
         d_applicationDataSize = d_applicationData.length();
-
-        if (haveMPs && !haveNewMPs && d_isDecompressingOldMPs) {
-            // Force decompressed.  Need to recalculate CRC32 and set
-            // decompressed flag
-
-            d_header.setCompressionAlgorithmType(
-                bmqt::CompressionAlgorithmType::e_NONE);
-            d_header.setCrc32c(Crc32c::calculate(d_applicationData));
-
-            // No need to write the header back to the blob since future events
-            // will use 'header()' as their input (not the blob).
-        }
     }  // else no data is available (compressed)
 
     return rc_HAS_NEXT;

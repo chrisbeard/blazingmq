@@ -208,6 +208,10 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
             bmqp::PutHeaderFlags::e_MESSAGE_PROPERTIES);
         ph.setFlags(flags);
 
+        // Stamp a schema id so the message properties are recognized as new
+        // style, the only supported style.
+        bmqp::MessagePropertiesInfo::makeInvalidSchema().applyTo(&ph);
+
         eventLength += (ph.messageWords() * bmqp::Protocol::k_WORD_SIZE);
 
         bdlbb::BlobUtil::append(blob,
@@ -413,9 +417,10 @@ void PutTester::populateBlob(bdlbb::Blob*                   blob,
     bdlbb::Blob& propertiesBlob = emptyBlob;
 
     if (properties.numProperties()) {
-        // This method does not use PutBuilder and the format is old.
+        // This method does not use PutBuilder.  Message properties are encoded
+        // in the new style (with a schema id), the only supported style.
         const bmqp::MessagePropertiesInfo messagePropertiesInfo =
-            bmqp::MessagePropertiesInfo::makeNoSchema();
+            bmqp::MessagePropertiesInfo::makeInvalidSchema();
         propertiesBlob = properties.streamOut(bufferFactory,
                                               messagePropertiesInfo);
 

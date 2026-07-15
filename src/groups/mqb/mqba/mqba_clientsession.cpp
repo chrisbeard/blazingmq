@@ -149,7 +149,6 @@
 // MQB
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_queueengineutil.h>
-#include <mqbcfg_brokerconfig.h>
 #include <mqbevt_ackevent.h>
 #include <mqbevt_callbackevent.h>
 #include <mqbevt_confirmevent.h>
@@ -1959,42 +1958,14 @@ void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
     // 'onConfirmEvent/onPutEvent' for why we do not check for
     // 'd_operationState' here; but only before sending NACKs..
 
-    // There are 3 possible scenarios:
-    // 1. Old style PUT with compressed MPs;
-    // 2. Old style PUT with not compressed MPs;
-    // 3. New style PUT;
-    //
-    // 1. Forcibly decompress MPs.
-    //    Note that the MPs still have the old format of length/offset.
-    // 2. No effect.
-    //    Note that the MPs still have the old format of length/offset.
-    // 3. No effect.
+    // Old-style (v1) message properties are no longer supported.  A PUT
+    // carrying them (e_MESSAGE_PROPERTIES set but no schema id) is rejected by
+    // 'PutMessageIterator::next()' before any decompression, so there is no
+    // need to force-decompress here.
     bmqp::Event rawEvent(event.blob().get(), d_state.d_allocator_p);
 
-    // Third argument in PutMsgIterator below conveys if the iterator should
-    // decomperss old style (v1) msg properties.  The value of this flag is
-    // derived from broker config as well as broker version, with this logic:
-    //
-    // - If brokerVersion is 999999 (developer workflow, CI, Jenkins, etc),
-    //   use true, irrespective of flag's value specified in the configuration.
-    //
-    // - If brokerVersion is not 999999 (dev and non-dev deployments), use the
-    //   value from configuration.
-
-    bool isDecompressingOldMPs = false;
-
-    if (mqbcfg::BrokerConfig::get().brokerVersion() == 999999) {
-        isDecompressingOldMPs = true;
-    }
-    else if (mqbcfg::BrokerConfig::get()
-                 .messagePropertiesV2()
-                 .advertiseV2Support()) {
-        isDecompressingOldMPs = true;
-    }
-
     bmqp::PutMessageIterator putIt(d_state.d_bufferFactory_p,
-                                   d_state.d_allocator_p,
-                                   isDecompressingOldMPs);
+                                   d_state.d_allocator_p);
 
     BSLS_ASSERT_SAFE(rawEvent.isPutEvent());
     rawEvent.loadPutMessageIterator(&putIt);

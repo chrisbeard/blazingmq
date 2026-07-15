@@ -139,18 +139,11 @@ MessageEventBuilder::packMessage(const bmqa::QueueId& queueId)
     d_impl.d_guidGenerator_sp->generateGUID(&guid);
     builder->setMessageGUID(guid);
 
-    if (queueSpRef->isOldStyle()) {
-        // Temporary; shall remove after 2nd roll out of "new style" brokers.
-        rc = builder->packMessageInOldStyle(queueSpRef->id());
-    }
-    else {
-        bmqp::MessagePropertiesInfo info =
-            queueSpRef->schemaGenerator().getSchemaId(
-                builder->messageProperties());
-        builder->setMessagePropertiesInfo(info);
+    bmqp::MessagePropertiesInfo info = queueSpRef->schemaGenerator().getSchemaId(
+        builder->messageProperties());
+    builder->setMessagePropertiesInfo(info);
 
-        rc = builder->packMessage(queueSpRef->id());
-    }
+    rc = builder->packMessage(queueSpRef->id());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             rc == bmqt::EventBuilderResult::e_SUCCESS)) {

@@ -6078,18 +6078,6 @@ void BrokerSession::onOpenQueueResponse(
                        << context->response().choice().status()
                        << ", request: " << context->request() << "]";
     }
-    else if (!context->isLateResponse()) {
-        // Temporary; shall remove after 2nd roll out of "new style" brokers.
-        BSLS_ASSERT_SAFE(d_channel_sp);  // just got the response
-        int isMPsEx;
-
-        if (d_channel_sp->properties().load(
-                &isMPsEx,
-                NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MPS_EX)) {
-            BSLS_ASSERT_SAFE(isMPsEx);
-            queue->setOldStyle(false);
-        }
-    }
 
     handleQueueFsmEvent(context,
                         queue,

@@ -285,9 +285,6 @@ class PutEventBuilder {
     /// carefully reviewed since this method compresses payload.
     bmqt::EventBuilderResult::Enum packMessage(int queueId);
 
-    /// Temporary; shall remove after 2nd roll out of "new style" brokers.
-    bmqt::EventBuilderResult::Enum packMessageInOldStyle(int queueId);
-
     /// Add the current message to the underlying event blob with the
     /// specified `queueId` as the destination queue.  Return zero on
     /// success, and a meaningful non-zero error code otherwise.  In case of
