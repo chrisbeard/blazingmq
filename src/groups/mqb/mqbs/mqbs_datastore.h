@@ -43,8 +43,6 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-#include <bmqc_orderedhashmap.h>
-
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>

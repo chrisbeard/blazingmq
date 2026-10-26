@@ -19,8 +19,6 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqt_resultcode.h>
-#include <bmqu_memoutstream.h>
-
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 

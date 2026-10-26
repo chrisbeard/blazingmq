@@ -18,8 +18,6 @@
 // BMQ
 #include <bmqu_memoutstream.h>
 
-#include <bmqu_memoutstream.h>
-
 // BDE
 #include <bsl_ios.h>
 #include <bsl_string.h>

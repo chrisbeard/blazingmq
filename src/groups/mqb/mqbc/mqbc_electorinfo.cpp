@@ -18,7 +18,6 @@
 #include <mqbscm_version.h>
 // MQB
 #include <mqbnet_cluster.h>
-#include <mqbscm_version.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>

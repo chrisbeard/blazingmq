@@ -16,7 +16,6 @@
 #include <mqbnet_initialconnectioncontext.h>
 
 // MQB
-#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
 

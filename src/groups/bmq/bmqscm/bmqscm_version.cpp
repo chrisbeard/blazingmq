@@ -15,7 +15,6 @@
 
 #include <bmqscm_version.h>
 
-#include <bmqscm_version.h>
 namespace BloombergLP {
 
 #define STRINGIFY2(a) #a

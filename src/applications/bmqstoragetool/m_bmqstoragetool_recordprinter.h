@@ -30,9 +30,6 @@
 // BMQ
 #include <m_bmqstoragetool_messagedetails.h>
 
-// BDE
-#include <bslma_allocator.h>
-
 // MQB
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbs_filestoreprotocolprinter.h>

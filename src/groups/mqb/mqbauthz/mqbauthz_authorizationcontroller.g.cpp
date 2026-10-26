@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bslma_testallocatormonitor.h>
 #include <mqbauthz_authorizationcontroller.h>
 
 // MQB
